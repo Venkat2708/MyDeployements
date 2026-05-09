@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AWS Cost Estimator</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:      #0A0E1A;
+    --surface: #111827;
+    --card:    #1A2235;
+    --border:  #1E2D45;
+    --accent:  #F59E0B;
+    --accent2: #3B82F6;
+    --accent3: #10B981;
+    --text:    #E2E8F0;
+    --muted:   #64748B;
+    --danger:  #EF4444;
+    --mono:    'JetBrains Mono', monospace;
+    --sans:    'Sora', sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: var(--sans); min-height:100vh;
+    background-image:
+      radial-gradient(ellipse at 20% 10%, rgba(59,130,246,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(245,158,11,0.06) 0%, transparent 60%);
+  }
+  header {
+    padding: 20px 40px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(17,24,39,0.9); backdrop-filter: blur(12px);
+    position: sticky; top:0; z-index:100;
+  }
+  .logo { display:flex; align-items:center; gap:12px; }
+  .logo-icon {
+    width:36px; height:36px; background:var(--accent);
+    border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:18px;
+  }
+  .logo-text { font-size:18px; font-weight:700; }
+  .logo-text span { color:var(--accent); }
+  .header-badge {
+    font-family:var(--mono); font-size:11px; color:var(--accent3);
+    background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25);
+    padding:4px 12px; border-radius:20px;
+  }
+  .hero { text-align:center; padding:48px 40px 32px; }
+  .hero-tag {
+    font-family:var(--mono); font-size:11px; color:var(--accent2);
+    background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2);
+    padding:4px 14px; border-radius:20px; display:inline-block; margin-bottom:18px;
+  }
+  .hero h1 { font-size:38px; font-weight:700; letter-spacing:-1px; line-height:1.1; margin-bottom:12px; }
+  .hero h1 span { color:var(--accent); }
+  .hero p { color:var(--muted); font-size:14px; max-width:460px; margin:0 auto; line-height:1.6; }
+
+  .main {
+    max-width:1200px; margin:0 auto; padding:0 40px 60px;
+    display:grid; grid-template-columns:1fr 400px; gap:24px; align-items:start;
+  }
+  .section-title {
+    font-size:11px; font-family:var(--mono); color:var(--muted);
+    text-transform:uppercase; letter-spacing:0.12em;
+    margin-bottom:14px; display:flex; align-items:center; gap:8px;
+  }
+  .section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  .services-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .service-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:14px; padding:18px;
+    transition:border-color 0.2s, transform 0.2s;
+  }
+  .service-card:hover { border-color:rgba(245,158,11,0.3); transform:translateY(-2px); }
+  .service-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .service-icon {
+    width:32px; height:32px; border-radius:8px;
+    display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;
+  }
+  .service-name { font-size:13px; font-weight:600; }
+  .service-sub  { font-size:11px; color:var(--muted); margin-top:1px; }
+  .field-row { display:flex; flex-direction:column; gap:5px; margin-bottom:10px; }
+  .field-row:last-of-type { margin-bottom:0; }
+  label { font-size:11px; color:var(--muted); font-family:var(--mono); }
+  select, input[type="number"] {
+    background:var(--surface); border:1px solid var(--border);
+    color:var(--text); border-radius:8px; padding:8px 12px;
+    font-size:12px; font-family:var(--sans); width:100%; outline:none;
+    transition:border-color 0.2s; appearance:auto;
+  }
+  select:focus, input[type="number"]:focus { border-color:var(--accent2); }
+  .add-btn {
+    width:100%; margin-top:12px; padding:9px;
+    background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.25);
+    color:var(--accent2); border-radius:8px; font-size:12px;
+    font-family:var(--sans); font-weight:600; cursor:pointer;
+    transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .add-btn:hover { background:rgba(59,130,246,0.2); border-color:var(--accent2); }
+
+  .right-panel { position:sticky; top:80px; }
+  .selected-panel {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:14px; padding:18px; margin-bottom:14px;
+  }
+  .selected-list { list-style:none; display:flex; flex-direction:column; gap:8px; min-height:56px; }
+  .selected-item {
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:8px; padding:10px 12px;
+    animation:slideIn 0.2s ease;
+  }
+  @keyframes slideIn { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
+  .item-info { flex:1; }
+  .item-service {
+    font-size:10px; font-family:var(--mono); color:var(--accent);
+    background:rgba(245,158,11,0.1); padding:1px 6px; border-radius:4px;
+    display:inline-block; margin-bottom:3px;
+  }
+  .item-name { font-size:12px; font-weight:500; }
+  .item-qty  { font-size:11px; color:var(--muted); margin-top:1px; }
+  .item-cost { font-family:var(--mono); font-size:13px; font-weight:600; color:var(--accent3); margin:0 10px; }
+  .remove-btn {
+    background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2);
+    color:var(--danger); width:24px; height:24px; border-radius:6px;
+    cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; transition:all 0.2s; line-height:1;
+  }
+  .remove-btn:hover { background:rgba(239,68,68,0.25); }
+  .empty-state { text-align:center; color:var(--muted); font-size:13px; padding:20px 0; font-style:italic; }
+
+  .calculate-btn {
+    width:100%; padding:14px; background:var(--accent);
+    color:#0A0E1A; border:none; border-radius:10px;
+    font-size:14px; font-weight:700; font-family:var(--sans);
+    cursor:pointer; transition:all 0.2s;
+    display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:12px;
+  }
+  .calculate-btn:hover { background:#FBBF24; transform:translateY(-1px); }
+  .calculate-btn:disabled { opacity:0.35; cursor:not-allowed; transform:none; }
+
+  .result-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:14px; padding:20px; display:none;
+    animation:fadeUp 0.3s ease;
+  }
+  .result-card.show { display:block; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  .cost-total {
+    text-align:center; padding:16px 0 14px;
+    border-bottom:1px solid var(--border); margin-bottom:14px;
+  }
+  .cost-label { font-size:10px; color:var(--muted); font-family:var(--mono); margin-bottom:6px; letter-spacing:0.1em; }
+  .cost-amount { font-size:40px; font-weight:700; font-family:var(--mono); color:var(--accent); line-height:1; }
+  .cost-period { font-size:12px; color:var(--muted); margin-top:4px; }
+  .cost-annual { font-size:13px; color:var(--accent3); font-family:var(--mono); margin-top:8px; font-weight:500; }
+  .breakdown-title { font-size:10px; font-family:var(--mono); color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:10px; }
+  .breakdown-list { list-style:none; display:flex; flex-direction:column; gap:6px; }
+  .breakdown-item {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 10px; background:var(--surface); border-radius:7px; font-size:12px;
+  }
+  .breakdown-item-name { color:var(--text); flex:1; }
+  .breakdown-item-qty  { color:var(--muted); font-family:var(--mono); font-size:11px; margin:0 8px; }
+  .breakdown-item-cost { color:var(--accent3); font-family:var(--mono); font-weight:600; }
+  .clear-btn {
+    width:100%; padding:10px; background:transparent;
+    border:1px solid var(--border); color:var(--muted);
+    border-radius:8px; font-size:12px; font-family:var(--sans);
+    cursor:pointer; transition:all 0.2s; margin-top:10px;
+  }
+  .clear-btn:hover { border-color:var(--danger); color:var(--danger); }
+
+  .icon-ec2  { background:rgba(245,158,11,0.15); }
+  .icon-rds  { background:rgba(59,130,246,0.15); }
+  .icon-s3   { background:rgba(16,185,129,0.15); }
+  .icon-elb  { background:rgba(168,85,247,0.15); }
+  .icon-ebs  { background:rgba(239,68,68,0.15); }
+  .icon-nat  { background:rgba(20,184,166,0.15); }
+  .icon-cf   { background:rgba(251,146,60,0.15); }
+  .icon-lbd  { background:rgba(245,158,11,0.15); }
+  .icon-eks  { background:rgba(59,130,246,0.15); }
+
+  @media(max-width:900px){
+    .main{ grid-template-columns:1fr; }
+    .right-panel{ position:static; }
+    .services-grid{ grid-template-columns:1fr; }
+    header{ padding:16px 20px; }
+    .hero{ padding:32px 20px 20px; }
+    .hero h1{ font-size:26px; }
+    .main{ padding:0 20px 40px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">☁️</div>
+    <div class="logo-text">AWS <span>Cost</span> Estimator</div>
+  </div>
+  <div class="header-badge">● Live Pricing</div>
+</header>
+
+<div class="hero">
+  <h1>Estimate Your <span>AWS</span> Bill<br/>Before It Hits</h1>
+  <p>Select AWS resources, set quantities, and get an instant monthly cost breakdown.</p>
+</div>
+
+<div class="main">
+  <div>
+    <div class="section-title">Select AWS Resources</div>
+    <div class="services-grid" id="services-grid"></div>
+  </div>
+
+  <div class="right-panel">
+    <div class="section-title">Selected Resources</div>
+    <div class="selected-panel">
+      <ul class="selected-list" id="selected-list">
+        <li class="empty-state">No resources added yet.</li>
+      </ul>
+    </div>
+    <button class="calculate-btn" onclick="calculate()" id="calc-btn" disabled>
+      ⚡ Calculate Monthly Cost
+    </button>
+    <div class="result-card" id="result-card">
+      <div class="cost-total">
+        <div class="cost-label">ESTIMATED MONTHLY COST</div>
+        <div class="cost-amount" id="total-cost">$0.00</div>
+        <div class="cost-period">per month · USD</div>
+        <div class="cost-annual" id="annual-cost"></div>
+      </div>
+      <div class="breakdown-title">Cost Breakdown</div>
+      <ul class="breakdown-list" id="breakdown-list"></ul>
+    </div>
+    <button class="clear-btn" onclick="clearAll()">✕ Clear All Resources</button>
+  </div>
+</div>
+
+<script>
+// ── ALL PRICING DATA ──
+const PRICING = {
+  ec2: {
+    icon: "🖥️", iconClass: "icon-ec2", name: "EC2", sub: "Compute Instances",
+    label: "Instance Type", qtyLabel: "Number of Instances", defaultQty: 1,
+    options: {
+      "t2.micro":   { price: 8.47,   label: "t2.micro (1 vCPU · 1GB RAM)" },
+      "t2.small":   { price: 16.94,  label: "t2.small (1 vCPU · 2GB RAM)" },
+      "t2.medium":  { price: 33.89,  label: "t2.medium (2 vCPU · 4GB RAM)" },
+      "t3.medium":  { price: 30.37,  label: "t3.medium (2 vCPU · 4GB RAM)" },
+      "t3.large":   { price: 60.74,  label: "t3.large (2 vCPU · 8GB RAM)" },
+      "m5.large":   { price: 70.08,  label: "m5.large (2 vCPU · 8GB RAM)" },
+      "m5.xlarge":  { price: 140.16, label: "m5.xlarge (4 vCPU · 16GB RAM)" },
+      "m5.2xlarge": { price: 280.32, label: "m5.2xlarge (8 vCPU · 32GB RAM)" },
+      "c5.large":   { price: 62.05,  label: "c5.large (2 vCPU · 4GB RAM)" },
+      "c5.xlarge":  { price: 124.10, label: "c5.xlarge (4 vCPU · 8GB RAM)" },
+      "r5.large":   { price: 91.98,  label: "r5.large (2 vCPU · 16GB RAM)" },
+      "r5.xlarge":  { price: 183.96, label: "r5.xlarge (4 vCPU · 32GB RAM)" },
+    }
+  },
+  rds: {
+    icon: "🗄️", iconClass: "icon-rds", name: "RDS", sub: "Managed Database",
+    label: "Instance Class", qtyLabel: "Number of Instances", defaultQty: 1,
+    options: {
+      "db.t3.micro":  { price: 14.60,  label: "db.t3.micro (2 vCPU · 1GB)" },
+      "db.t3.small":  { price: 29.20,  label: "db.t3.small (2 vCPU · 2GB)" },
+      "db.t3.medium": { price: 58.40,  label: "db.t3.medium (2 vCPU · 4GB)" },
+      "db.m5.large":  { price: 124.10, label: "db.m5.large (2 vCPU · 8GB)" },
+      "db.m5.xlarge": { price: 248.20, label: "db.m5.xlarge (4 vCPU · 16GB)" },
+      "db.r5.large":  { price: 175.20, label: "db.r5.large (2 vCPU · 16GB)" },
+    }
+  },
+  s3: {
+    icon: "🪣", iconClass: "icon-s3", name: "S3", sub: "Object Storage",
+    label: "Storage Class", qtyLabel: "Storage Size (GB)", defaultQty: 100,
+    options: {
+      "standard":   { price: 0.023,  label: "Standard (per GB/mo)" },
+      "infrequent": { price: 0.0125, label: "Infrequent Access (per GB/mo)" },
+      "glacier":    { price: 0.004,  label: "Glacier (per GB/mo)" },
+    }
+  },
+  elb: {
+    icon: "⚖️", iconClass: "icon-elb", name: "Load Balancer", sub: "ELB / ALB / NLB",
+    label: "Balancer Type", qtyLabel: "Number of Load Balancers", defaultQty: 1,
+    options: {
+      "application": { price: 22.27, label: "Application Load Balancer" },
+      "network":     { price: 19.71, label: "Network Load Balancer" },
+      "classic":     { price: 18.40, label: "Classic Load Balancer" },
+    }
+  },
+  ebs: {
+    icon: "💾", iconClass: "icon-ebs", name: "EBS", sub: "Block Storage",
+    label: "Volume Type", qtyLabel: "Volume Size (GB)", defaultQty: 50,
+    options: {
+      "gp2": { price: 0.10,  label: "GP2 SSD (per GB/mo)" },
+      "gp3": { price: 0.08,  label: "GP3 SSD (per GB/mo)" },
+      "io1": { price: 0.125, label: "IO1 Provisioned (per GB/mo)" },
+      "st1": { price: 0.045, label: "ST1 HDD (per GB/mo)" },
+    }
+  },
+  nat: {
+    icon: "🌐", iconClass: "icon-nat", name: "NAT Gateway", sub: "Outbound Traffic",
+    label: "Type", qtyLabel: "Number of NAT Gateways", defaultQty: 1,
+    options: {
+      "nat_gateway": { price: 32.40, label: "NAT Gateway (per AZ/mo)" },
+    }
+  },
+  cloudfront: {
+    icon: "🚀", iconClass: "icon-cf", name: "CloudFront", sub: "CDN Distribution",
+    label: "Data Transfer Tier", qtyLabel: "Number of Distributions", defaultQty: 1,
+    options: {
+      "10tb":  { price: 85.00,  label: "Up to 10TB/month" },
+      "50tb":  { price: 340.00, label: "Up to 50TB/month" },
+      "100tb": { price: 640.00, label: "Up to 100TB/month" },
+    }
+  },
+  lambda: {
+    icon: "⚡", iconClass: "icon-lbd", name: "Lambda", sub: "Serverless Functions",
+    label: "Request Volume", qtyLabel: "Number of Functions", defaultQty: 1,
+    options: {
+      "1m_req":   { price: 0.20,  label: "1M requests/month" },
+      "10m_req":  { price: 2.00,  label: "10M requests/month" },
+      "100m_req": { price: 20.00, label: "100M requests/month" },
+    }
+  },
+  eks: {
+    icon: "☸️", iconClass: "icon-eks", name: "EKS", sub: "Kubernetes Cluster",
+    label: "Cluster Type", qtyLabel: "Number of Clusters", defaultQty: 1,
+    options: {
+      "cluster": { price: 72.00, label: "EKS Cluster (per cluster/mo)" },
+    }
+  }
+};
+
+// ── BUILD SERVICE CARDS DYNAMICALLY ──
+function buildCards() {
+  const grid = document.getElementById('services-grid');
+  const keys = Object.keys(PRICING);
+  keys.forEach((serviceKey, i) => {
+    const svc = PRICING[serviceKey];
+    const isLast = i === keys.length - 1;
+    const span = isLast && keys.length % 2 !== 0 ? 'grid-column:span 2;' : '';
+
+    let optionsHTML = Object.entries(svc.options).map(([key, val]) =>
+      `<option value="${key}">${val.label} — $${val.price}/mo</option>`
+    ).join('');
+
+    const card = document.createElement('div');
+    card.className = 'service-card';
+    card.style.cssText = span;
+    card.innerHTML = `
+      <div class="service-header">
+        <div class="service-icon ${svc.iconClass}">${svc.icon}</div>
+        <div>
+          <div class="service-name">${svc.name}</div>
+          <div class="service-sub">${svc.sub}</div>
+        </div>
+      </div>
+      <div class="field-row">
+        <label>${svc.label}</label>
+        <select id="${serviceKey}-type">${optionsHTML}</select>
+      </div>
+      <div class="field-row">
+        <label>${svc.qtyLabel}</label>
+        <input type="number" id="${serviceKey}-qty" value="${svc.defaultQty}" min="1"/>
+      </div>
+      <button class="add-btn" onclick="addResource('${serviceKey}')">+ Add ${svc.name}</button>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ── STATE ──
+let resources  = [];
+let idCounter  = 0;
+
+function addResource(serviceKey) {
+  const svc         = PRICING[serviceKey];
+  const resourceKey = document.getElementById(serviceKey + '-type').value;
+  const quantity    = parseFloat(document.getElementById(serviceKey + '-qty').value) || 1;
+  const option      = svc.options[resourceKey];
+
+  resources.push({
+    id:         ++idCounter,
+    serviceKey,
+    resourceKey,
+    serviceName: svc.name,
+    label:       option.label,
+    price:       option.price,
+    quantity,
+    cost:        option.price * quantity
+  });
+  renderList();
+}
+
+function removeResource(id) {
+  resources = resources.filter(r => r.id !== id);
+  renderList();
+  document.getElementById('result-card').classList.remove('show');
+}
+
+function renderList() {
+  const list    = document.getElementById('selected-list');
+  const calcBtn = document.getElementById('calc-btn');
+  list.innerHTML = '';
+
+  if (resources.length === 0) {
+    list.innerHTML = '<li class="empty-state">No resources added yet.</li>';
+    calcBtn.disabled = true;
+    return;
+  }
+
+  calcBtn.disabled = false;
+  resources.forEach(r => {
+    const li = document.createElement('li');
+    li.className = 'selected-item';
+    li.innerHTML = `
+      <div class="item-info">
+        <span class="item-service">${r.serviceName}</span>
+        <div class="item-name">${r.label}</div>
+        <div class="item-qty">× ${r.quantity}</div>
+      </div>
+      <div class="item-cost">$${r.cost.toFixed(2)}</div>
+      <button class="remove-btn" onclick="removeResource(${r.id})">×</button>
+    `;
+    list.appendChild(li);
+  });
+}
+
+function calculate() {
+  const total    = resources.reduce((sum, r) => sum + r.cost, 0);
+  const annual   = total * 12;
+
+  document.getElementById('total-cost').textContent  = '$' + total.toFixed(2);
+  document.getElementById('annual-cost').textContent = '≈ $' + annual.toFixed(2) + ' / year';
+
+  const bList = document.getElementById('breakdown-list');
+  bList.innerHTML = '';
+  resources.forEach(r => {
+    const li = document.createElement('li');
+    li.className = 'breakdown-item';
+    li.innerHTML = `
+      <span class="breakdown-item-name">${r.label}</span>
+      <span class="breakdown-item-qty">×${r.quantity}</span>
+      <span class="breakdown-item-cost">$${r.cost.toFixed(2)}</span>
+    `;
+    bList.appendChild(li);
+  });
+
+  document.getElementById('result-card').classList.add('show');
+}
+
+function clearAll() {
+  resources = [];
+  renderList();
+  document.getElementById('result-card').classList.remove('show');
+}
+
+// Init
+buildCards();
+</script>
+</body>
+</html>
