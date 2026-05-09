@@ -1,1 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Cheatsheet Gallery | Dockerized App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        :root {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --text-primary: #1a1a2e;
+            --text-secondary: #666;
+            --card-bg: #ffffff;
+            --card-front-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-back-bg: #ffffff;
+            --border-color: #e0e0e0;
+            --shadow: 0 10px 30px rgba(0,0,0,0.1);
+            --toast-bg: #333;
+            --toast-text: white;
+        }
+
+        body.dark {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --text-primary: #eee;
+            --text-secondary: #aaa;
+            --card-bg: #0f3460;
+            --card-front-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-back-bg: #0f3460;
+            --border-color: #2a3f5e;
+            --shadow: 0 10px 30px rgba(0,0,0,0.3);
+            --toast-bg: #00ff9d;
+            --toast-text: #1a1a2e;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            margin-bottom: 3rem;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .dark-mode-btn {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            color: var(--text-primary);
+        }
+
+        .dark-mode-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .stats {
+            display: inline-block;
+            background: var(--card-bg);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            margin-left: 1rem;
+            font-weight: bold;
+        }
+
+        .search-container {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+
+        .clear-btn {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            padding: 5px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+
+        .filter-btn {
+            padding: 0.7rem 1.3rem;
+            border: 2px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-primary);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            border-color: #667eea;
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.8rem;
+        }
+
+        .card {
+            background: transparent;
+            height: 300px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            border-radius: 15px;
+        }
+
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: var(--shadow);
+        }
+
+        .card-front {
+            background: var(--card-front-bg);
+            color: white;
+            transform: rotateY(0deg);
+        }
+
+        .category-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-front h3 {
+            font-size: 1.4rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-front .category {
+            font-size: 0.8rem;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .card-back {
+            background: var(--card-back-bg);
+            color: var(--text-primary);
+            transform: rotateY(180deg);
+            text-align: left;
+            overflow-y: auto;
+        }
+
+        .command {
+            background: rgba(102,126,234,0.1);
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin: 0.5rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .command code {
+            flex: 1;
+            font-size: 0.8rem;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.25rem 0.75rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #764ba2;
+            transform: scale(1.05);
+        }
+
+        .description {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 4rem;
+            grid-column: 1 / -1;
+            color: var(--text-secondary);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--toast-bg);
+            color: var(--toast-text);
+            padding: 1rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 1000;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            .filter-btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <h1>🐳 DevOps Cheatsheet Gallery</h1>
+                <button id="darkModeToggle" class="dark-mode-btn">🌙</button>
+            </div>
+            <p class="subtitle">
+                Essential commands for DevOps engineers - Containerized with Docker + Nginx
+                <span id="stats" class="stats">📊 Loading...</span>
+            </p>
+            
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="🔍 Search commands, categories, or keywords..." class="search-input">
+                <button id="clearSearch" class="clear-btn" style="display: none;">✖</button>
+            </div>
+            
+            <div class="filters">
+                <button class="filter-btn active" data-category="all">📦 All</button>
+                <button class="filter-btn" data-category="linux">🐧 Linux</button>
+                <button class="filter-btn" data-category="git">📝 Git</button>
+                <button class="filter-btn" data-category="docker">🐳 Docker</button>
+                <button class="filter-btn" data-category="kubernetes">☸ Kubernetes</button>
+                <button class="filter-btn" data-category="jenkins">🔧 Jenkins</button>
+                <button class="filter-btn" data-category="ansible">🤖 Ansible</button>
+                <button class="filter-btn" data-category="terraform">🏗️ Terraform</button>
+            </div>
+        </header>
+
+        <div id="cardsGrid" class="cards-grid"></div>
+        <div id="toast" class="toast">✅ Copied to clipboard!</div>
+    </div>
+
+    <script>
+        // Define cheatsheets data at the top level
+        const cheatsheets = [
+            // LINUX (8 commands)
+            { id: 1, title: "List Files", category: "linux", icon: "📂", command: "ls -la", description: "List all files with detailed information including hidden files" },
+            { id: 2, title: "Change Directory", category: "linux", icon: "📁", command: "cd /path/to/directory", description: "Navigate to a specific directory" },
+            { id: 3, title: "Copy Files", category: "linux", icon: "📋", command: "cp source.txt destination.txt", description: "Copy files or directories from source to destination" },
+            { id: 4, title: "Move/Rename", category: "linux", icon: "✂️", command: "mv oldname.txt newname.txt", description: "Move files or rename them" },
+            { id: 5, title: "Remove Files", category: "linux", icon: "🗑️", command: "rm -rf directory/", description: "Remove files or directories forcefully" },
+            { id: 6, title: "Search Text", category: "linux", icon: "🔍", command: "grep -r 'pattern' /path/", description: "Search recursively for text pattern in files" },
+            { id: 7, title: "Process List", category: "linux", icon: "⚙️", command: "ps aux | grep process", description: "View all running processes and filter by name" },
+            { id: 8, title: "File Permissions", category: "linux", icon: "🔐", command: "chmod 755 script.sh", description: "Change file permissions (755 = rwxr-xr-x)" },
+            
+            // GIT (8 commands)
+            { id: 9, title: "Clone Repository", category: "git", icon: "📥", command: "git clone https://github.com/user/repo.git", description: "Clone a remote repository to your local machine" },
+            { id: 10, title: "Create Branch", category: "git", icon: "🌿", command: "git checkout -b feature-branch", description: "Create and switch to a new branch" },
+            { id: 11, title: "Commit Changes", category: "git", icon: "💾", command: "git add . && git commit -m 'message'", description: "Stage all changes and commit with a message" },
+            { id: 12, title: "Push to Remote", category: "git", icon: "⬆️", command: "git push origin main", description: "Push local commits to remote repository" },
+            { id: 13, title: "Pull Updates", category: "git", icon: "⬇️", command: "git pull origin main", description: "Pull latest changes from remote branch" },
+            { id: 14, title: "View Status", category: "git", icon: "📊", command: "git status", description: "Show working tree status (modified, staged files)" },
+            { id: 15, title: "View History", category: "git", icon: "📜", command: "git log --oneline --graph", description: "View commit history as a graph with one line per commit" },
+            { id: 16, title: "Stash Changes", category: "git", icon: "📦", command: "git stash push -m 'message'", description: "Temporarily save uncommitted changes" },
+            
+            // DOCKER (8 commands)
+            { id: 17, title: "Build Image", category: "docker", icon: "🏗️", command: "docker build -t myapp:latest .", description: "Build a Docker image from Dockerfile" },
+            { id: 18, title: "Run Container", category: "docker", icon: "🚀", command: "docker run -d -p 8080:80 --name myapp myapp:latest", description: "Run container in detached mode with port mapping" },
+            { id: 19, title: "List Containers", category: "docker", icon: "📋", command: "docker ps -a", description: "List all containers (running and stopped)" },
+            { id: 20, title: "Container Logs", category: "docker", icon: "📝", command: "docker logs -f container-name", description: "Follow and view container logs in real-time" },
+            { id: 21, title: "Exec into Container", category: "docker", icon: "🐚", command: "docker exec -it container-name /bin/bash", description: "Access shell inside running container" },
+            { id: 22, title: "Stop and Remove", category: "docker", icon: "🛑", command: "docker stop container-id && docker rm container-id", description: "Stop and remove a container" },
+            { id: 23, title: "Docker Compose Up", category: "docker", icon: "📦", command: "docker-compose up -d", description: "Start all services defined in docker-compose.yml" },
+            { id: 24, title: "Clean System", category: "docker", icon: "🧹", command: "docker system prune -a -f", description: "Remove all unused containers, networks, and images" },
+            
+            // KUBERNETES (8 commands)
+            { id: 25, title: "Get Pods", category: "kubernetes", icon: "☸", command: "kubectl get pods -n namespace", description: "List all pods in specified namespace" },
+            { id: 26, title: "Describe Resource", category: "kubernetes", icon: "🔍", command: "kubectl describe pod pod-name", description: "Get detailed information about a resource" },
+            { id: 27, title: "Apply Config", category: "kubernetes", icon: "📄", command: "kubectl apply -f deployment.yaml", description: "Apply or update configuration from file" },
+            { id: 28, title: "Delete Resource", category: "kubernetes", icon: "🗑️", command: "kubectl delete -f deployment.yaml", description: "Delete resources defined in file" },
+            { id: 29, title: "Pod Logs", category: "kubernetes", icon: "📝", command: "kubectl logs -f pod-name", description: "Stream logs from a specific pod" },
+            { id: 30, title: "Port Forward", category: "kubernetes", icon: "🔌", command: "kubectl port-forward pod-name 8080:80", description: "Forward local port to a pod" },
+            { id: 31, title: "Scale Deployment", category: "kubernetes", icon: "📈", command: "kubectl scale deployment myapp --replicas=5", description: "Scale deployment to desired replicas" },
+            { id: 32, title: "Switch Context", category: "kubernetes", icon: "🔄", command: "kubectl config use-context prod-cluster", description: "Switch between different clusters" },
+            
+            // JENKINS (8 commands)
+            { id: 33, title: "Start Jenkins", category: "jenkins", icon: "🔧", command: "sudo systemctl start jenkins", description: "Start Jenkins service on Linux" },
+            { id: 34, title: "Jenkins CLI", category: "jenkins", icon: "💻", command: "java -jar jenkins-cli.jar -s http://localhost:8080 help", description: "Use Jenkins CLI tool for automation" },
+            { id: 35, title: "Create Job", category: "jenkins", icon: "📝", command: "create-job job-name < config.xml", description: "Create a new Jenkins job from XML config" },
+            { id: 36, title: "Build Job", category: "jenkins", icon: "🔨", command: "build job-name -s -v", description: "Trigger a Jenkins job build with parameters" },
+            { id: 37, title: "Install Plugin", category: "jenkins", icon: "🔌", command: "install-plugin plugin-name -deploy", description: "Install and deploy a Jenkins plugin" },
+            { id: 38, title: "Reload Config", category: "jenkins", icon: "🔄", command: "reload-configuration", description: "Reload Jenkins configuration from disk" },
+            { id: 39, title: "List Nodes", category: "jenkins", icon: "📡", command: "list-nodes", description: "List all Jenkins nodes/agents" },
+            { id: 40, title: "Console Output", category: "jenkins", icon: "🖥️", command: "console job-name #build-number", description: "Get console output of a specific build" },
+            
+            // ANSIBLE (8 commands)
+            { id: 41, title: "Ping Test", category: "ansible", icon: "🏓", command: "ansible all -m ping", description: "Test connectivity to all hosts" },
+            { id: 42, title: "Run Ad-hoc", category: "ansible", icon: "⚡", command: "ansible webservers -a 'uptime'", description: "Run command on specific host group" },
+            { id: 43, title: "Run Playbook", category: "ansible", icon: "📖", command: "ansible-playbook site.yml", description: "Execute an Ansible playbook" },
+            { id: 44, title: "Dry Run", category: "ansible", icon: "🔍", command: "ansible-playbook site.yml --check", description: "Check mode - preview changes without applying" },
+            { id: 45, title: "Verbose Mode", category: "ansible", icon: "🔊", command: "ansible-playbook site.yml -vvv", description: "Run playbook with verbose output for debugging" },
+            { id: 46, title: "List Inventory", category: "ansible", icon: "📋", command: "ansible-inventory --list", description: "List all hosts in inventory" },
+            { id: 47, title: "Vault Encrypt", category: "ansible", icon: "🔐", command: "ansible-vault encrypt secrets.yml", description: "Encrypt sensitive files with Ansible Vault" },
+            { id: 48, title: "Galaxy Install", category: "ansible", icon: "🌌", command: "ansible-galaxy install username.role_name", description: "Install Ansible roles from Galaxy" },
+            
+            // TERRAFORM (8 commands)
+            { id: 49, title: "Initialize", category: "terraform", icon: "🚀", command: "terraform init", description: "Initialize Terraform working directory" },
+            { id: 50, title: "Plan", category: "terraform", icon: "📋", command: "terraform plan -out=tfplan", description: "Preview infrastructure changes and save plan" },
+            { id: 51, title: "Apply", category: "terraform", icon: "✅", command: "terraform apply tfplan", description: "Apply planned infrastructure changes" },
+            { id: 52, title: "Destroy", category: "terraform", icon: "💥", command: "terraform destroy -auto-approve", description: "Destroy all infrastructure resources" },
+            { id: 53, title: "Format Code", category: "terraform", icon: "✨", command: "terraform fmt -recursive", description: "Format Terraform files consistently" },
+            { id: 54, title: "Validate", category: "terraform", icon: "✔️", command: "terraform validate", description: "Validate configuration syntax" },
+            { id: 55, title: "State List", category: "terraform", icon: "📊", command: "terraform state list", description: "List resources in Terraform state" },
+            { id: 56, title: "Output Values", category: "terraform", icon: "📤", command: "terraform output", description: "Show output values from configuration" }
+        ];
+
+        // Log to console to verify data loaded
+        console.log('Cheatsheets loaded:', cheatsheets.length, 'commands');
+
+        // DOM elements
+        const cardsGrid = document.getElementById('cardsGrid');
+        const searchInput = document.getElementById('searchInput');
+        const clearSearchBtn = document.getElementById('clearSearch');
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const toast = document.getElementById('toast');
+        const statsSpan = document.getElementById('stats');
+
+        // State
+        let currentCategory = 'all';
+        let currentSearchTerm = '';
+        let isDarkMode = localStorage.getItem('darkMode') === 'true';
+
+        // Initialize dark mode
+        function initDarkMode() {
+            if (isDarkMode) {
+                document.body.classList.add('dark');
+                darkModeToggle.textContent = '☀️';
+            } else {
+                document.body.classList.remove('dark');
+                darkModeToggle.textContent = '🌙';
+            }
+        }
+
+        // Show toast
+        function showToast(message) {
+            toast.textContent = message || '✅ Copied to clipboard!';
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        // Copy to clipboard
+        async function copyToClipboard(text, button) {
+            try {
+                await navigator.clipboard.writeText(text);
+                const originalText = button.innerHTML;
+                button.innerHTML = '✓ Copied!';
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                }, 1500);
+                showToast(`📋 Copied: ${text.substring(0, 40)}${text.length > 40 ? '...' : ''}`);
+            } catch (err) {
+                console.error('Copy failed:', err);
+                showToast('❌ Failed to copy. Select text manually.');
+            }
+        }
+
+        // Escape HTML
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        // Update stats
+        function updateStats(filteredCount) {
+            statsSpan.textContent = `📊 ${filteredCount} commands`;
+        }
+
+        // Render cards
+        function renderCards() {
+            // Start with all cheatsheets
+            let filtered = [...cheatsheets];
+            
+            // Apply category filter
+            if (currentCategory !== 'all') {
+                filtered = filtered.filter(item => item.category === currentCategory);
+            }
+            
+            // Apply search filter
+            if (currentSearchTerm.trim()) {
+                const term = currentSearchTerm.toLowerCase();
+                filtered = filtered.filter(item => 
+                    item.title.toLowerCase().includes(term) ||
+                    item.command.toLowerCase().includes(term) ||
+                    item.description.toLowerCase().includes(term) ||
+                    item.category.toLowerCase().includes(term)
+                );
+            }
+            
+            // Update stats
+            updateStats(filtered.length);
+            
+            // Check if no results
+            if (filtered.length === 0) {
+                cardsGrid.innerHTML = `
+                    <div class="no-results">
+                        <div style="font-size: 4rem;">🔍</div>
+                        <h3>No commands found</h3>
+                        <p>Try a different search term or category</p>
+                        <button onclick="document.getElementById('searchInput').value=''; document.getElementById('searchInput').dispatchEvent(new Event('input'))" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Clear Search</button>
+                    </div>`;
+                return;
+            }
+            
+            // Generate cards HTML
+            cardsGrid.innerHTML = filtered.map(item => `
+                <div class="card" data-id="${item.id}">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <div class="category-icon">${escapeHtml(item.icon)}</div>
+                            <h3>${escapeHtml(item.title)}</h3>
+                            <div class="category">${escapeHtml(item.category.toUpperCase())}</div>
+                        </div>
+                        <div class="card-back">
+                            <div class="command">
+                                <code>${escapeHtml(item.command)}</code>
+                                <button class="copy-btn" data-command="${escapeHtml(item.command)}">📋 Copy</button>
+                            </div>
+                            <div class="description">${escapeHtml(item.description)}</div>
+                            <small style="display: block; margin-top: 1rem; text-align: center; opacity: 0.7;">↺ Click to flip back</small>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Add flip listeners
+            document.querySelectorAll('.card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('copy-btn')) return;
+                    card.classList.toggle('flipped');
+                });
+            });
+            
+            // Add copy listeners
+            document.querySelectorAll('.copy-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    copyToClipboard(btn.getAttribute('data-command'), btn);
+                });
+            });
+        }
+
+        // Event handlers
+        function handleSearch() {
+            currentSearchTerm = searchInput.value;
+            clearSearchBtn.style.display = currentSearchTerm ? 'block' : 'none';
+            renderCards();
+        }
+        
+        function clearSearch() {
+            searchInput.value = '';
+            handleSearch();
+            searchInput.focus();
+        }
+        
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            localStorage.setItem('darkMode', isDarkMode);
+            initDarkMode();
+        }
+        
+        // Initialize the app
+        function init() {
+            console.log('Initializing app...');
+            initDarkMode();
+            
+            // Make sure elements exist
+            if (!cardsGrid) {
+                console.error('cardsGrid element not found!');
+                return;
+            }
+            
+            // Set up event listeners
+            if (searchInput) searchInput.addEventListener('input', handleSearch);
+            if (clearSearchBtn) clearSearchBtn.addEventListener('click', clearSearch);
+            if (darkModeToggle) darkModeToggle.addEventListener('click', toggleDarkMode);
+            
+            // Category filter buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentCategory = btn.getAttribute('data-category');
+                    renderCards();
+                });
+            });
+            
+            // Initial render
+            renderCards();
+            console.log('App initialized successfully!');
+        }
+        
+        // Start the app when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>
